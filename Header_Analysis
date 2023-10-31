@@ -1,0 +1,79 @@
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
+
+def load_excel_sheet(file_path, sheet_name):
+    """
+    Load an Excel sheet.
+
+    Parameters:
+    - file_path: Path to the excel file.
+    - sheet_name: Name of the sheet to load.
+
+    Returns:
+    - Loaded sheet.
+    """
+    wb = load_workbook(file_path)
+    return wb[sheet_name]
+
+def find_merged_range(sheet, row, col):
+    """
+    Find if a cell is part of a merged range and return the range.
+
+    Parameters:
+    - sheet: Excel sheet object.
+    - row, col: Cell coordinates.
+
+    Returns:
+    - A tuple representing the merged range's min and max columns.
+    """
+    cell = sheet.cell(row=row, column=col)
+    for merged_range in sheet.merged_cells.ranges:
+        if cell.coordinate in merged_range:
+            return (merged_range.min_col, merged_range.max_col)
+    return (col, col)  # Return the column itself if not merged
+
+def find_misaligned_headers(sheet, start_col, header_rows):
+    """
+    Check headers for misalignment.
+
+    Parameters:
+    - sheet: Excel sheet object.
+    - start_col: Starting column for the check.
+    - header_rows: A tuple indicating the rows which have the headers.
+
+    Returns:
+    - A list with information on misaligned columns.
+    """
+    header_row1, header_row2 = header_rows
+    misaligned_headers_info = []
+
+    for col_num in range(start_col, sheet.max_column + 1):
+        merged_range1 = find_merged_range(sheet, header_row1, col_num)
+        merged_range2 = find_merged_range(sheet, header_row2, col_num)
+
+        if merged_range1 != merged_range2:
+            # Fetch header values and column indices for the misaligned columns
+            header1_value = sheet.cell(row=header_row1, column=col_num).value
+            header2_value = sheet.cell(row=header_row2, column=col_num).value
+            col_index = get_column_letter(col_num)
+            misaligned_headers_info.append((col_index, header1_value, header2_value))
+
+    return misaligned_headers_info
+
+def main():
+    file_path = 'path_to_your_file.xlsx'  # Update your path here
+    sheet_name = "YourSheetName"  # Update your sheet name here
+    
+    sheet = load_excel_sheet(file_path, sheet_name)
+    misaligned_headers_info = find_misaligned_headers(sheet, 7, (1, 2))
+
+    # Report misaligned columns
+    if misaligned_headers_info:
+        print("Misaligned headers:")
+        for col_index, header1, header2 in misaligned_headers_info:
+            print(f"Column: {col_index}, Header 1: {header1}, Header 2: {header2}")
+    else:
+        print("No misalignment detected.")
+
+if __name__ == "__main__":
+    main()

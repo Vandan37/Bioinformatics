@@ -1,0 +1,94 @@
+import pandas as pd
+
+def load_data_from_drive(mount_point, file_path, sheet_name, header_levels, engine):
+    """
+    Mounts a drive and loads data from an excel file.
+
+    Parameters:
+    - mount_point: The mounting point for the drive.
+    - file_path: Path to the excel file.
+    - sheet_name: Name of the sheet to load.
+    - header_levels: Levels of headers in the excel sheet.
+    - engine: Engine used to read the excel file.
+
+    Returns:
+    - DataFrame with data from the excel file.
+    """
+    # TODO: Mount the drive if required. This is specific to Google Colab.
+    # If you're using another environment, you may want to remove this.
+    # drive.mount(mount_point)
+    
+    return pd.read_excel(file_path, sheet_name=sheet_name, header=header_levels, engine=engine)
+
+def get_filtered_data(df, key_column_name, key_filters):
+    """
+    Fetches filtered data based on user input and key columns.
+
+    Parameters:
+    - df: The data frame to search.
+    - key_column_name: The key column name to use as a base.
+    - key_filters: List of strings used to build column names.
+
+    Returns:
+    - A tuple with the key data and the filtered data.
+    """
+    key_column = [col for col in df.columns if key_column_name in col[0]][0]
+    key_data = df[key_column].values.tolist()
+
+    # Build possible level-1 headers
+    possible_headers = [filter_combo for filter_combo in key_filters]
+
+    filtered_col = None
+    for header in possible_headers:
+        for col in header:
+            if col in df.columns:
+                filtered_col = col
+                break
+        if filtered_col:
+            break
+
+    if not filtered_col:
+        for header in possible_headers:
+            try:
+                base_col_index = df.columns.get_loc(header[0:2])
+                filtered_col = df.columns[base_col_index + 1]
+                break
+            except:
+                pass
+
+    if filtered_col:
+        filtered_data = df[filtered_col].values.tolist()
+        return key_data, filtered_data
+    else:
+        return key_data, None
+
+def main():
+    file_path = 'path_to_your_file.xlsx'  # Update your path here
+    sheet_name = "YourSheetName"  # Update your sheet name here
+    header_levels = [0, 1, 2]
+    engine = 'openpyxl'
+    
+    df = load_data_from_drive('/content/drive', file_path, sheet_name, header_levels, engine)
+
+    input_filter_1 = input("Enter Filter 1: ")
+    input_filter_2 = input("Enter Filter 2: ")
+    input_filter_3 = input("Enter Filter 3: ")
+
+    key_filters = [
+        (input_filter_1 + "_" + input_filter_2, input_filter_3, 'ColumnName1'),
+        (input_filter_1 + "_" + input_filter_2, input_filter_3, 'ColumnName2')
+    ]
+
+    key_data, filtered_data = get_filtered_data(df, 'YourKeyColumnName', key_filters)
+
+    if filtered_data:
+        print("\nOutput Data:")
+        for key, value in zip(key_data, filtered_data):
+            # Your logic to format and print the data
+            pass
+    else:
+        print("Columns not found for the given inputs.")
+
+if __name__ == "__main__":
+    main()
+# Comments added using sell-AI
